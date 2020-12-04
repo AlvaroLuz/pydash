@@ -27,12 +27,12 @@ class R2AFDash(IR2A):
         self.time_last_buffer_check = 0
         self.now_diff_buffer_time = 0
         self.first_package = True
-        self.second_package = False
         self.buffer_time = 0
         self.timestamp_last_buffer_add =0
         self.before_diff_buffer_time = -1
         self.request_time = 0
         self.ri = []
+
     def handle_xml_request(self, msg):
         # getting the initial time of the request for calculating the throughput
         self.request_time  = time.perf_counter()
@@ -48,14 +48,14 @@ class R2AFDash(IR2A):
         request_processing_time = time.perf_counter() - self.request_time
         bit_size = msg.get_bit_length()
         self.ri.append(bit_size/(request_processing_time))
-        print(self.ri)
-
 
         self.send_up(msg)
 
     def handle_segment_size_request(self, msg):
 
         # time to define the segment quality choose to make the request
+        #variable to the first passage
+        #can be improved
         if(self.first_package == False):
             buffer_playback = self.whiteboard.get_playback_buffer_size()
             i = 0   
@@ -63,9 +63,10 @@ class R2AFDash(IR2A):
                 if (playback[0] > self.timestamp_last_buffer_add):
                     if ((playback[1]> buffer_playback[i-1][1])or(len(buffer_playback) == 1)):
                         self.now_diff_buffer_time = playback[1] - self.time_last_buffer_check
-                        self.time_last_buffer_check = playback[1]
+                        self.time_last_buffer_check = playback[1] - 1
                         self.timestamp_last_buffer_add = playback[0]
-
+                i = i + 1
+            
             #verbal variables for referring to the buffer size
             Close, Long, Short = False, False, False
             if(self.time_last_buffer_check<10):
@@ -119,20 +120,23 @@ class R2AFDash(IR2A):
                 r8 = r
             else:
                 r9 = r
+    
             print(f"{r1},{r2},{r3},{r4},{r5},{r6},{r7},{r8},{r9}")
+
             I  = math.sqrt((r9**2))
             SI = math.sqrt((r6**2)+(r8**2))
             NC = math.sqrt((r3**2)+(r5**2)+(r7**2))
             SR = math.sqrt((r2**2)+(r4**2))
             R  = math.sqrt((r1**2))    
 
+            #possible improvement
             #defining the fuzzy controller constants
             arg_dict = {"N2": 0.25,
                         "N1": 0.5 ,
                         "Z" : 1   ,
                         "P1": 1.5 ,
                         "P2": 2.0   
-                    } 
+                    }
             
             #calculating fuzzy controller
             f = (arg_dict["N2"] * R) + (arg_dict["N1"] * SR) + (arg_dict["Z"] * NC) + (arg_dict["P1"] * SI) + (arg_dict["P2"]* I) 
@@ -156,15 +160,14 @@ class R2AFDash(IR2A):
             print(f'Exibindo o valor de Bi+1 = {bi}, f = {f}, rd = {rd}')
         
         msg.add_quality_id(self.qi[self.qi_index])
+        #variable to the first passage
+        #possible improvement
         self.first_package = False        
-        if(self.first_package):
-            self.second_package = True
         self.send_down(msg)
 
     def handle_segment_size_response(self, msg):
         #getting the bit size of the message to calculate throughput
-
-        #
+        #is it necessary to be here
         buffer_playback = self.whiteboard.get_playback_buffer_size()
         i = 0
         for playback in buffer_playback:
