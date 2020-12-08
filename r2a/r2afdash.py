@@ -16,7 +16,7 @@ from player.parser import *
 from r2a.ir2a import IR2A
 import time
 import math
-
+from statistics import mean
 class R2AFDash(IR2A):
     
     def __init__(self, id):
@@ -61,13 +61,12 @@ class R2AFDash(IR2A):
             buffer_playback = self.whiteboard.get_playback_buffer_size()
             i = 0   
             for register in buffer_playback:
-                if (register[0]<self.timestamp_last_buffer_add):
-                    if((register[1]>buffer_playback[i-1][1])or(len(buffer_playback) == 1)):
-                        self.time_last_buffer_check = register[1] - 1
-                if( i == (len(buffer_playback)-1)):
+                # if (register[0]<self.timestamp_last_buffer_add):
+                #     if((register[1]>buffer_playback[i-1][1])or(len(buffer_playback) == 1)):
+                if( register[0]>self.timestamp_last_buffer_add):
                     self.now_diff_buffer_time = register[1] - self.time_last_buffer_check
+                    self.time_last_buffer_check = register[1] - 1
                     self.timestamp_last_buffer_add = register[0]
-                i = i + 1
 
             #verbal variables for referring to the buffer size
             Close, Long, Short = False, False, False
@@ -133,11 +132,9 @@ class R2AFDash(IR2A):
             f = (arg_dict["N2"] * R) + (arg_dict["N1"] * SR) + (arg_dict["Z"] * NC) + (arg_dict["P1"] * SI) + (arg_dict["P2"]* I) 
             f = f/(R+SR+NC+SI+I)
             
-            rd = 0 
             #calculating mean throughput rate 
-            for throughput in self.ri:
-                rd = rd+(throughput/len(self.ri))
-            
+            rd = mean(self.ri)/3
+
             #defining next segment bit size
             bi = f * rd
 
@@ -161,7 +158,7 @@ class R2AFDash(IR2A):
         request_processing_time = time.perf_counter() - self.request_time
         bit_size = msg.get_bit_length()
 
-        self.ri.append(bit_size/(request_processing_time*2))
+        self.ri.append(bit_size/(request_processing_time))
 
         self.before_diff_buffer_time = self.now_diff_buffer_time
 
