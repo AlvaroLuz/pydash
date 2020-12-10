@@ -25,11 +25,10 @@ class R2AFDash(IR2A):
         self.qi = []
         self.qi_index = 0
         self.time_last_buffer_check = 0
-        self.now_diff_buffer_time = 0
+        self.before_buffer_time = 0
         self.first_package = True
         self.buffer_time = 0
         self.timestamp_last_buffer_add =0
-        self.before_diff_buffer_time = -1
         self.handle_xml_request_time = 0
         self.ri = []
         self.request_time = 0
@@ -59,14 +58,10 @@ class R2AFDash(IR2A):
         #can be improved
         if(self.first_package == False):
             buffer_playback = self.whiteboard.get_playback_buffer_size()
-            i = 0   
-            for register in buffer_playback:
-                # if (register[0]<self.timestamp_last_buffer_add):
-                #     if((register[1]>buffer_playback[i-1][1])or(len(buffer_playback) == 1)):
-                if( register[0]>self.timestamp_last_buffer_add):
-                    self.now_diff_buffer_time = register[1] - self.time_last_buffer_check
-                    self.time_last_buffer_check = register[1] - 1
-                    self.timestamp_last_buffer_add = register[0]
+
+            self.before_buffer_time = self.time_last_buffer_check
+            self.time_last_buffer_check = buffer_playback[-1][1] - 1
+            self.timestamp_last_buffer_add = buffer_playback[-1][0]
 
             #verbal variables for referring to the buffer size
             Close, Long, Short = False, False, False
@@ -77,7 +72,7 @@ class R2AFDash(IR2A):
             else:
                 Close = True
 
-            delta_diff_buffer_time = self.now_diff_buffer_time - self.before_diff_buffer_time
+            delta_diff_buffer_time = self.time_last_buffer_check - self.before_buffer_time
 
             #verbal variables for referring to the buffer variations in size
             Rising, Falling, Steady = False, False, False 
@@ -159,8 +154,6 @@ class R2AFDash(IR2A):
         bit_size = msg.get_bit_length()
 
         self.ri.append(bit_size/(request_processing_time))
-
-        self.before_diff_buffer_time = self.now_diff_buffer_time
 
         self.send_up(msg)
 
