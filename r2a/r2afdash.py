@@ -32,6 +32,7 @@ class R2AFDash(IR2A):
         self.handle_xml_request_time = 0
         self.ri = []
         self.request_time = 0
+        self.previous_quality_index = 0
         self.throughputs = []
     def handle_xml_request(self, msg):
         # getting the initial time of the request for calculating the throughput
@@ -141,7 +142,15 @@ class R2AFDash(IR2A):
                     self.qi_index= self.qi_index+1
             
             print(f'Exibindo o valor de Bi+1 = {bi}, f = {f}, rd = {rd}')
-        
+            
+            self.predict_buffer_new_index = self.time_last_buffer_check + (((self.ri[-1]/3)/self.qi[self.qi_index])*60) 
+            self.predict_buffer_previous_index = self.time_last_buffer_check + (((self.ri[-1]/3)/self.qi[self.previous_quality_index])*60)
+            if ((self.qi[self.qi_index]>self.qi[self.previous_quality_index])and(self.predict_buffer_new_index<35)):
+                self.qi_index = self.previous_quality_index
+            elif ((self.qi[self.qi_index]<self.qi[self.previous_quality_index])and(self.predict_buffer_previous_index>35)):
+                self.qi_index = self.previous_quality_index
+            
+            self.previous_quality_index = self.qi_index
         msg.add_quality_id(self.qi[self.qi_index])
         #variable to the first passage
         #possible improvement
